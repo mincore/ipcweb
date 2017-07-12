@@ -1,0 +1,90 @@
+<!--camera demo by chenshuangping-->
+
+<html>
+<head>
+<title>camera demo</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<link rel="stylesheet" type="text/css" href="css/viewer.css">
+<script type="text/javascript" src="js/jquery.min.js"></script>
+</head>
+<body>
+
+<div id="container">
+   <div id="vlc-container">
+        <embed class="vlc" id="vlc" type="application/x-vlc-plugin" autoplay="no" controller="false" loop="no" volume="50" toolbar="false" windowless="true" native-scaling="true" height="100%" width="100%">
+   </div>
+
+   <div id="cards">
+       <div class="card template">
+           <div class="image"><img src="" class="show"></div>
+           <div class="name"><img src="" class="user"><span></span></div>
+           <div class="time"></div>
+       </div>
+   </div>
+
+   <div id="faces">
+       <div class="face template">
+           <div class="image"><img src=""></div>
+       </div>
+   </div>
+</div>
+
+<script type="text/javascript">
+
+    function show_income_face(data, show) {
+        var id = 'faceid_' + data.trackId;
+        var quality = data.quality;
+        var div = document.getElementById(id);
+
+        if (div) {
+            var prev_quality = parseFloat(div.getAttribute("qa"));
+            if (quality > prev_quality) {
+                $(div).find('img').attr('src', 'data:image/jpeg;base64,' + data.image);
+            }
+            return;
+        }
+
+        div = $('div.face.template').clone().removeClass('template').prependTo('#faces');
+        div.attr("id", id);
+        div.attr("qa", quality);
+        div.find('img').attr('src', 'data:image/jpeg;base64,' + data.image);
+
+        setTimeout(function() {
+            div.fadeOut(2000, function() { div.remove(); delete div; });
+        }, 3000);
+    }
+    
+    function remove_income_face(data, show) {
+        var id = 'faceid_' + data.trackId;
+        var div = document.getElementById(id);
+        if (!div)
+            return;
+        
+        div.fadeOut(2000, function() { div.remove(); });
+    }
+    
+    function show_recognized_face(data) {
+    }
+
+    var ws = new WebSocket('ws://' + location.host + '/ws');
+    ws.onmessage = function(ev) {
+        var data = JSON.parse(ev.data);
+        switch (data.status) {
+            default: show_income_face(data); break;
+            case "gone": remove_income_face(data); break;
+            case "recognized": show_recognized_face(data); break;
+        }
+    }
+
+    $(window).on('beforeunload', function(){
+        ws.close();
+    });
+
+    var options = new Array(":network-caching=200");
+    var vlc = document.getElementById("vlc")
+    var id = vlc.playlist.add("rtsp://192.168.0.100:8554", "video1", options);
+    vlc.playlist.playItem(id);
+</script>
+
+</body>
+</html>
